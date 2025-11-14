@@ -1,0 +1,337 @@
+.admin-dashboard {
+  padding: 1.5rem;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+
+  @media (max-width: 600px) {
+    padding: 1rem;
+  }
+
+  &__header {
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    h4 {
+      margin: 0;
+      font-weight: 600;
+      color: #1a1a1a;
+      font-size: 2.125rem;
+
+      @media (max-width: 600px) {
+        font-size: 1.75rem;
+      }
+    }
+
+    svg {
+      font-size: 2.5rem;
+      color: #d32f2f;
+
+      @media (max-width: 600px) {
+        font-size: 2rem;
+      }
+    }
+  }
+
+  &__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__stat-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    color: white !important;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .MuiCardContent-root {
+      padding: 1.5rem;
+    }
+
+    &--total-users {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+
+    &--admins {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    }
+
+    &--managers {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    }
+
+    &--employees {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+    }
+
+    &--pods {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+    }
+  }
+
+  &__stat-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__stat-info {
+    flex: 1;
+  }
+
+  &__stat-label {
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: white !important;
+  }
+
+  &__stat-value {
+    font-weight: 600;
+    font-size: 2rem;
+    line-height: 1;
+    color: white !important;
+  }
+
+  &__stat-icon {
+    font-size: 3rem;
+    opacity: 0.8;
+    color: white !important;
+  }
+
+  &__management-card {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+
+    .MuiCardContent-root {
+      padding: 1.5rem;
+
+      @media (max-width: 600px) {
+        padding: 1rem;
+      }
+    }
+  }
+
+  &__management-header {
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: #1976d2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    h6 {
+      margin: 0;
+    }
+  }
+
+  &__table-container {
+    overflow-x: auto;
+
+    @media (max-width: 600px) {
+      margin: 0 -1rem;
+    }
+  }
+
+  &__table {
+    min-width: 650px;
+
+    thead tr {
+      background: linear-gradient(135deg, #455a64 0%, #37474f 100%);
+    }
+
+    th {
+      color: white;
+      font-weight: 600;
+      padding: 1rem;
+      border: none;
+    }
+
+    tbody tr {
+      transition: background-color 0.2s ease;
+
+      &:nth-of-type(even) {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+
+      &:hover {
+        background-color: rgba(25, 118, 210, 0.04);
+      }
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(224, 224, 224, 1);
+    }
+  }
+
+  &__user-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  &__user-avatar {
+    width: 40px;
+    height: 40px;
+    font-weight: 600;
+  }
+
+  &__user-info {
+    flex: 1;
+  }
+
+  &__user-name {
+    font-weight: 500;
+    margin: 0;
+    font-size: 1rem;
+    color: #1a1a1a;
+  }
+
+  &__user-email {
+    font-size: 0.875rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin: 0;
+  }
+
+  &__employee-id {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: #455a64;
+  }
+
+  &__role-chip {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: white;
+
+    &--admin {
+      background-color: #d32f2f;
+    }
+
+    &--manager {
+      background-color: #1976d2;
+    }
+
+    &--employee {
+      background-color: #455a64;
+    }
+  }
+
+  &__action-button {
+    color: #1976d2;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(25, 118, 210, 0.08);
+    }
+  }
+}
+
+.admin-dialog {
+  .MuiDialog-paper {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+
+  &__title {
+    font-weight: 600;
+    color: #1976d2;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  &__content {
+    padding: 1.5rem;
+  }
+
+  &__user-info {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+  }
+
+  &__info-label {
+    font-size: 0.875rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 0.25rem;
+  }
+
+  &__info-value {
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin: 0.25rem 0;
+    color: #1a1a1a;
+  }
+
+  &__info-email {
+    font-size: 0.875rem;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  &__role-select {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  &__actions {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+}
+
+// Loading and Error States
+.admin-dashboard__loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+}
+
+.admin-dashboard__error {
+  margin-bottom: 1.5rem;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-dashboard__stat-card {
+  animation: fadeIn 0.5s ease-out;
+
+  @for $i from 1 through 5 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.1}s;
+    }
+  }
+}

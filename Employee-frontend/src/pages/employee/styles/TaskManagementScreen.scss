@@ -1,0 +1,491 @@
+// Task Management Screen - Futuristic Professional Styling
+
+.task-management {
+  padding: 32px !important;
+  background: #ffffff !important;
+  min-height: calc(100vh - 88px) !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+
+  @media (max-width: 768px) {
+    padding: 20px !important;
+  }
+}
+
+.task-management__header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 40px !important;
+  flex-wrap: wrap !important;
+  gap: 20px !important;
+  padding-bottom: 24px !important;
+  border-bottom: 2px solid rgba(25, 118, 210, 0.1) !important;
+
+  @media (max-width: 600px) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-bottom: 28px !important;
+  }
+}
+
+.task-management__header-title {
+  color: #1976d2 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  position: relative !important;
+  padding-bottom: 12px !important;
+  margin: 0 !important;
+  font-size: 2rem !important;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem !important;
+  }
+
+  &::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 80px !important;
+    height: 5px !important;
+    background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%) !important;
+    border-radius: 3px !important;
+  }
+}
+
+.task-management__header-controls {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+
+  @media (max-width: 600px) {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .MuiButton-contained {
+    padding: 14px 36px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    border-radius: 30px !important;
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.35) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: none !important;
+
+    &:hover {
+      box-shadow: 0 8px 28px rgba(25, 118, 210, 0.45) !important;
+      transform: translateY(-3px) !important;
+    }
+
+    &:active {
+      transform: translateY(-1px) !important;
+    }
+
+    .MuiSvgIcon-root {
+      font-size: 22px !important;
+    }
+  }
+}
+
+// Filter Buttons
+.task-management__filters {
+  display: flex !important;
+  gap: 16px !important;
+  margin-bottom: 32px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+
+  @media (max-width: 600px) {
+    gap: 12px !important;
+    margin-bottom: 24px !important;
+  }
+}
+
+.task-management__filter-btn {
+  padding: 12px 28px !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  border-radius: 25px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-width: 2px !important;
+
+  @media (max-width: 600px) {
+    padding: 10px 20px !important;
+    font-size: 0.875rem !important;
+  }
+
+  &.MuiButton-outlined {
+    border-color: rgba(25, 118, 210, 0.3) !important;
+    color: #1976d2 !important;
+    background: rgba(25, 118, 210, 0.03) !important;
+
+    &:hover {
+      border-color: #1976d2 !important;
+      background: rgba(25, 118, 210, 0.08) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15) !important;
+    }
+  }
+
+  &.MuiButton-contained {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3) !important;
+    border: 2px solid transparent !important;
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    &.MuiButton-colorSuccess {
+      background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%) !important;
+      box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3) !important;
+
+      &:hover {
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4) !important;
+      }
+    }
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+// Loading State
+.task-management__loading {
+  display: flex !important;
+  justify-content: center !important;
+  padding: 48px !important;
+}
+
+// Tasks Grid
+.task-management__tasks-grid {
+  display: grid !important;
+  gap: 28px !important;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)) !important;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+}
+
+// Empty State
+.task-management__empty {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 20px !important;
+  border: 3px dashed rgba(25, 118, 210, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(25, 118, 210, 0.08) !important;
+  padding: 80px 32px !important;
+  min-height: 300px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  .MuiCardContent-root {
+    text-align: center !important;
+  }
+
+  .MuiTypography-root {
+    color: #78909c !important;
+    font-size: 1.25rem !important;
+    font-weight: 500 !important;
+  }
+}
+
+// Task Card
+.task-management__task-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(25, 118, 210, 0.1) !important;
+  border: 2px solid rgba(25, 118, 210, 0.12) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+  min-height: 200px !important;
+
+  &:hover {
+    box-shadow: 0 16px 56px rgba(25, 118, 210, 0.18) !important;
+    transform: translateY(-6px) !important;
+    border-color: rgba(25, 118, 210, 0.3) !important;
+  }
+}
+
+.task-management__task-card-content {
+  padding: 28px !important;
+
+  @media (max-width: 768px) {
+    padding: 24px !important;
+  }
+}
+
+.task-management__task-card-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+
+  .MuiIconButton-root {
+    padding: 10px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: rgba(25, 118, 210, 0.05) !important;
+    border-radius: 12px !important;
+
+    &:hover {
+      transform: scale(1.15) !important;
+      background: rgba(25, 118, 210, 0.1) !important;
+    }
+
+    &.MuiIconButton-colorSuccess {
+      color: #4caf50 !important;
+      background: rgba(76, 175, 80, 0.08) !important;
+
+      &:hover {
+        background: rgba(76, 175, 80, 0.15) !important;
+      }
+    }
+
+    .MuiSvgIcon-root {
+      font-size: 32px !important;
+    }
+  }
+}
+
+.task-management__task-card-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #2c3e50 !important;
+  margin-bottom: 12px !important;
+  word-break: break-word !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.task-management__task-card-description {
+  color: #607d8b !important;
+  font-size: 0.9375rem !important;
+  margin-bottom: 16px !important;
+  line-height: 1.7 !important;
+  min-height: 44px !important;
+}
+
+.task-management__task-card-dates {
+  display: flex !important;
+  gap: 24px !important;
+  margin-bottom: 12px !important;
+  flex-wrap: wrap !important;
+}
+
+.task-management__task-card-date {
+  color: #546e7a !important;
+  font-size: 0.875rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+
+  strong {
+    color: #37474f !important;
+    font-weight: 600 !important;
+  }
+}
+
+.task-management__task-card-actions {
+  display: flex !important;
+  gap: 6px !important;
+  margin-left: auto !important;
+
+  .MuiIconButton-root {
+    padding: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-radius: 10px !important;
+
+    &:hover {
+      transform: scale(1.2) !important;
+      background: rgba(25, 118, 210, 0.12) !important;
+    }
+
+    &.MuiIconButton-colorError:hover {
+      background: rgba(244, 67, 54, 0.12) !important;
+    }
+
+    .MuiSvgIcon-root {
+      font-size: 22px !important;
+    }
+  }
+}
+
+.task-management__task-card-chips {
+  display: flex !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+  margin-top: 20px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(25, 118, 210, 0.08) !important;
+
+  .MuiChip-root {
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    border-radius: 18px !important;
+    text-transform: capitalize !important;
+    padding: 6px 4px !important;
+    height: 32px !important;
+
+    &.MuiChip-colorSuccess {
+      background: rgba(76, 175, 80, 0.15) !important;
+      color: #4caf50 !important;
+      border: 1.5px solid rgba(76, 175, 80, 0.35) !important;
+      font-weight: 700 !important;
+    }
+
+    &.MuiChip-colorDefault {
+      background: rgba(25, 118, 210, 0.15) !important;
+      color: #1976d2 !important;
+      border: 1.5px solid rgba(25, 118, 210, 0.35) !important;
+    }
+
+    .MuiChip-label {
+      padding: 0 12px !important;
+    }
+  }
+}
+
+// Dialog Styles
+.task-management__dialog {
+  .MuiDialog-paper {
+    border-radius: 24px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.25) !important;
+    min-width: 500px !important;
+
+    @media (max-width: 768px) {
+      min-width: auto !important;
+      margin: 16px !important;
+    }
+  }
+
+  .MuiDialogTitle-root {
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(66, 165, 245, 0.08) 100%) !important;
+    color: #1976d2 !important;
+    font-weight: 700 !important;
+    font-size: 1.625rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.2px !important;
+    padding: 28px 36px !important;
+    border-bottom: 3px solid rgba(25, 118, 210, 0.2) !important;
+  }
+
+  .MuiDialogContent-root {
+    padding: 36px !important;
+
+    @media (max-width: 768px) {
+      padding: 28px !important;
+    }
+  }
+
+  .MuiDialogActions-root {
+    padding: 24px 36px !important;
+    background: rgba(245, 247, 250, 0.5) !important;
+    border-top: 2px solid rgba(25, 118, 210, 0.1) !important;
+    display: flex !important;
+    gap: 14px !important;
+  }
+}
+
+.task-management__dialog-form {
+  padding-top: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 28px !important;
+
+  .MuiTextField-root {
+    .MuiInputLabel-root {
+      color: #455a64 !important;
+      font-weight: 600 !important;
+      font-size: 1rem !important;
+      
+      &.Mui-focused {
+        color: #1976d2 !important;
+      }
+    }
+
+    .MuiOutlinedInput-root {
+      border-radius: 14px !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+
+      &:hover .MuiOutlinedInput-notchedOutline {
+        border-color: rgba(25, 118, 210, 0.5) !important;
+        border-width: 2px !important;
+      }
+
+      &.Mui-focused .MuiOutlinedInput-notchedOutline {
+        border-color: #1976d2 !important;
+        border-width: 2.5px !important;
+      }
+
+      input, textarea {
+        padding: 16px 18px !important;
+        font-size: 1rem !important;
+      }
+    }
+  }
+}
+
+// Dialog Action Buttons
+.task-management__dialog {
+  .MuiButton-text {
+    padding: 12px 32px !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    border-radius: 26px !important;
+    color: #455a64 !important;
+    border: 2px solid rgba(69, 90, 100, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+    &:hover {
+      background: rgba(69, 90, 100, 0.1) !important;
+      border-color: rgba(69, 90, 100, 0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+  }
+
+  .MuiButton-contained {
+    padding: 12px 32px !important;
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    border-radius: 26px !important;
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+    box-shadow: 0 6px 18px rgba(25, 118, 210, 0.35) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: none !important;
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.45) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    &:disabled {
+      opacity: 0.6 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+    }
+  }
+}
