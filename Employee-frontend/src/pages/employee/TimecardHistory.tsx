@@ -12,11 +12,17 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  Card,
+  CardContent,
+  Chip,
 } from '@mui/material';
-import { format, subDays, parseISO, differenceInHours, differenceInMinutes } from 'date-fns';
+import { format, subDays, parseISO, differenceInHours, differenceInMinutes, isWeekend } from 'date-fns';
 import { timecardApi } from '../../services/api';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import './styles/TimecardHistory.scss';
 import { formatDate, formatTime } from '../../utils/dateFormatter';
 
@@ -26,7 +32,64 @@ interface Timecard {
   clockOut: string | null;
   totalHours?: number;
   status: 'complete' | 'incomplete';
+  location?: 'Office' | 'Home' | 'office' | 'home'; // Support both cases
 }
+
+const mapAttendanceToColor = (attendance: 'present_office' | 'present_home' | 'absent'): string => {
+  switch (attendance) {
+    case 'present_office':
+      return '#4caf50';
+    case 'present_home':
+      return '#fff9c4';
+    case 'absent':
+      return '#f08080';
+    default:
+      return 'gray';
+  }
+};
+
+const generateCalendarEvents = (timecards: Timecard[], startDate: Date, endDate: Date): { title: string; start: string; backgroundColor: string; allDay: boolean }[] => {
+  const events: { title: string; start: string; backgroundColor: string; allDay: boolean }[] = [];
+
+  // Create a map of dates with attendance
+  const attendanceMap: Record<string, 'present_office' | 'present_home' | 'absent'> = {};
+
+  timecards.forEach((timecard) => {
+    const date = format(parseISO(timecard.clockIn), 'yyyy-MM-dd');
+    // Check location and set attendance status (case-insensitive)
+    const location = timecard.location?.toLowerCase();
+    if (location === 'home') {
+      attendanceMap[date] = 'present_home';
+    } else if (location === 'office') {
+      attendanceMap[date] = 'present_office';
+    } else {
+      // If location is not specified, default to office
+      attendanceMap[date] = 'present_office';
+    }
+  });
+
+  // Fill in absent days, excluding weekends
+  let currentDate = startDate;
+  while (currentDate <= endDate) {
+    const dateStr = format(currentDate, 'yyyy-MM-dd');
+    if (!attendanceMap[dateStr] && !isWeekend(currentDate)) {
+      attendanceMap[dateStr] = 'absent';
+    }
+    currentDate = new Date(currentDate.getTime() + 86400000); // Increment by one day
+  }
+
+  // Generate events
+  Object.entries(attendanceMap).forEach(([date, attendance]) => {
+    events.push({
+      title: '',
+      start: date,
+      backgroundColor: mapAttendanceToColor(attendance),
+      allDay: true,
+    });
+  });
+
+  return events;
+};
 
 export const TimecardHistory = () => {
   const [timecards, setTimecards] = useState<Timecard[]>([]);
@@ -114,18 +177,25 @@ export const TimecardHistory = () => {
         </IconButton>
       </Box>
 
-      <Box className="timecard-history__filters">
-        <DatePicker
-          label="Start Date"
-          value={startDate}
-          onChange={(newValue) => newValue && setStartDate(newValue)}
-        />
-        <DatePicker
-          label="End Date"
-          value={endDate}
-          onChange={(newValue) => newValue && setEndDate(newValue)}
-        />
-      </Box>
+      <Card className="timecard-history__filters-card">
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#455a64' }}>
+            Date Range
+          </Typography>
+          <Box className="timecard-history__filters">
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={(newValue) => newValue && setStartDate(newValue)}
+            />
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={(newValue) => newValue && setEndDate(newValue)}
+            />
+          </Box>
+        </CardContent>
+      </Card>
 
       {error && (
         <Alert severity="error" className="timecard-history__error">
@@ -139,13 +209,72 @@ export const TimecardHistory = () => {
         </Box>
       ) : (
         <>
-          <Box className="timecard-history__summary">
-            <Typography variant="h6" className="timecard-history__summary-title">
-              Total Hours: <span>{calculateTotalHours()}</span> hours
-            </Typography>
-          </Box>
+          <Card className="timecard-history__summary-card">
+            <CardContent>
+              <Typography variant="h6" className="timecard-history__summary-title">
+                Total Hours: <span>{calculateTotalHours()}</span> hours
+              </Typography>
+            </CardContent>
+          </Card>
 
-          <TableContainer component={Paper} className="timecard-history__table-container">
+          <Card className="timecard-history__calendar-card">
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#455a64' }}>
+                  Attendance Calendar
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label="Office" 
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#4caf50',
+                      color: 'white',
+                      fontWeight: 600
+                    }}
+                  />
+                  <Chip 
+                    label="Home" 
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#fff9c4',
+                      color: '#333',
+                      fontWeight: 600,
+                      border: '1px solid #f9d71c'
+                    }}
+                  />
+                  <Chip 
+                    label="Absent" 
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#f08080',
+                      color: 'white',
+                      fontWeight: 600
+                    }}
+                  />
+                </Box>
+              </Box>
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                events={generateCalendarEvents(timecards, startDate, endDate)}
+                height="auto"
+                eventDisplay="block"
+                headerToolbar={{
+                  left: 'prev,next',
+                  center: 'title',
+                  right: ''
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="timecard-history__table-card">
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#455a64' }}>
+                Detailed Records
+              </Typography>
+              <TableContainer component={Paper} className="timecard-history__table-container">
             <Table>
               <TableHead>
                 <TableRow>
@@ -198,6 +327,8 @@ export const TimecardHistory = () => {
               </TableBody>
             </Table>
           </TableContainer>
+            </CardContent>
+          </Card>
         </>
       )}
     </Box>

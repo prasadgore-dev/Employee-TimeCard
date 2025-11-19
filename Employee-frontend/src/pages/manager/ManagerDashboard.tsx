@@ -20,12 +20,25 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  IconButton,
+  Tooltip,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
 } from '@mui/material';
 import { 
   People as PeopleIcon, 
   Assignment as AssignmentIcon,
-  Business as BusinessIcon 
+  Business as BusinessIcon,
+  CalendarMonth as CalendarIcon,
+  Close as CloseIcon,
+  FiberManualRecord as DotIcon,
 } from '@mui/icons-material';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import { format, subDays, parseISO, isWeekend } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { managerApi } from '../../services/api';
 import { formatDate } from '../../utils/dateFormatter';
@@ -79,6 +92,13 @@ export const ManagerDashboard = () => {
   const [isLoadingLeaveRequests, setIsLoadingLeaveRequests] = useState(false);
   const [podDialogOpen, setPodDialogOpen] = useState(false);
   const [podEmployees, setPodEmployees] = useState<Employee[]>([]);
+  const [timecardDialogOpen, setTimecardDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dateDetailsDialogOpen, setDateDetailsDialogOpen] = useState(false);
+  const [podTimecards, setPodTimecards] = useState<any[]>([]);
+  const [isLoadingTimecards, setIsLoadingTimecards] = useState(false);
+  const [employeeDetailsDialogOpen, setEmployeeDetailsDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const navigate = useNavigate();
 
   const calculateDayCount = (startDate: string, endDate: string): number => {
@@ -132,7 +152,16 @@ export const ManagerDashboard = () => {
   }, []);
 
   const handleViewDetails = (employeeId: string) => {
-    navigate(`/manager/employee-status/${employeeId}`);
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setEmployeeDetailsDialogOpen(true);
+    }
+  };
+
+  const handleCloseEmployeeDetails = () => {
+    setEmployeeDetailsDialogOpen(false);
+    setSelectedEmployee(null);
   };
 
   const handlePodCardClick = (podName: string) => {
@@ -171,6 +200,175 @@ export const ManagerDashboard = () => {
   const handleViewLeaveRequest = () => {
     setLeaveDialogOpen(false);
     navigate(`/manager/leave-approval`);
+  };
+
+  const handleOpenTimecardView = async () => {
+    setTimecardDialogOpen(true);
+    setIsLoadingTimecards(true);
+    try {
+      // Fetch timecard data for all employees in the selected pod
+      const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+      const endDate = format(new Date(), 'yyyy-MM-dd');
+      
+      // Get timecards for each employee in the pod
+      const timecardPromises = podEmployees.map(async (employee) => {
+        try {
+          const response = await managerApi.getEmployeeTimecards(
+            employee.id,
+            startDate,
+            endDate
+          );
+          return response;
+        } catch (error) {
+          console.error(`Error fetching timecards for employee ${employee.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allTimecards = await Promise.all(timecardPromises);
+      const flatTimecards = allTimecards.flat();
+      console.log('Fetched pod timecards:', flatTimecards);
+      console.log('Today date:', format(new Date(), 'yyyy-MM-dd'));
+      console.log('Pod employees:', podEmployees);
+      setPodTimecards(flatTimecards);
+    } catch (error) {
+      console.error('Error fetching pod timecards:', error);
+      setError('Failed to load timecard data');
+    } finally {
+      setIsLoadingTimecards(false);
+    }
+  };
+
+  const handleCloseTimecardView = () => {
+    setTimecardDialogOpen(false);
+    setPodTimecards([]);
+  };
+
+  const handleDateClick = (info: any) => {
+    setSelectedDate(info.dateStr);
+    setDateDetailsDialogOpen(true);
+  };
+
+  const handleCloseDateDetails = () => {
+    setDateDetailsDialogOpen(false);
+    setSelectedDate(null);
+  };
+
+  const generateCalendarEvents = () => {
+    const events: any[] = [];
+    const dateMap: Record<string, { employeeStatus: Array<{ employee: Employee; status: 'present' | 'home' | 'absent' }> }> = {};
+
+    // Initialize date map for the last 30 days
+    const startDate = subDays(new Date(), 30);
+    const endDate = new Date();
+    let currentDate = startDate;
+
+    while (currentDate <= endDate) {
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
+      if (!isWeekend(currentDate)) {
+        dateMap[dateStr] = { employeeStatus: [] };
+      }
+      currentDate = new Date(currentDate.getTime() + 86400000);
+    }
+
+    // Track each employee's attendance for each date
+    podEmployees.forEach((employee) => {
+      const employeeTimecards = podTimecards.filter(
+        (tc: any) => tc.employeeId === employee.id || tc.employee?.id === employee.id
+      );
+
+      Object.keys(dateMap).forEach((dateStr) => {
+        const timecard = employeeTimecards.find((tc: any) => {
+          if (!tc.clockIn) return false;
+          
+          // Parse the clockIn date and format it to yyyy-MM-dd
+          let tcDate;
+          try {
+            // Handle both ISO string and Date object
+            tcDate = typeof tc.clockIn === 'string' ? new Date(tc.clockIn) : tc.clockIn;
+            const formattedTcDate = format(tcDate, 'yyyy-MM-dd');
+            return formattedTcDate === dateStr;
+          } catch (error) {
+            console.error('Error parsing date:', tc.clockIn, error);
+            return false;
+          }
+        });
+
+        if (timecard) {
+          const location = timecard.location?.toLowerCase();
+          if (location === 'home') {
+            dateMap[dateStr].employeeStatus.push({ employee, status: 'home' });
+          } else {
+            dateMap[dateStr].employeeStatus.push({ employee, status: 'present' });
+          }
+        } else {
+          dateMap[dateStr].employeeStatus.push({ employee, status: 'absent' });
+        }
+      });
+    });
+
+    // Generate dot events for each employee
+    Object.entries(dateMap).forEach(([date, data]) => {
+      data.employeeStatus.forEach((empStatus, index) => {
+        const color = empStatus.status === 'present' ? '#4caf50' : 
+                      empStatus.status === 'home' ? '#fbc02d' : '#f44336';
+        
+        events.push({
+          title: '●',
+          start: date,
+          color: color,
+          textColor: color,
+          allDay: true,
+          display: 'list-item',
+          classNames: ['dot-indicator'],
+          extendedProps: {
+            dotIndex: index,
+            employeeName: `${empStatus.employee.firstName} ${empStatus.employee.lastName}`,
+            status: empStatus.status,
+          },
+        });
+      });
+    });
+
+    return events;
+  };
+
+  const getDateDetails = () => {
+    if (!selectedDate) return { present: [], absent: [], home: [] };
+
+    const present: Employee[] = [];
+    const absent: Employee[] = [];
+    const home: Employee[] = [];
+
+    podEmployees.forEach((employee) => {
+      const timecard = podTimecards.find((tc: any) => {
+        if (!tc.clockIn) return false;
+        const tcEmployeeId = tc.employeeId || tc.employee?.id;
+        if (tcEmployeeId !== employee.id) return false;
+        
+        try {
+          const tcDate = typeof tc.clockIn === 'string' ? new Date(tc.clockIn) : tc.clockIn;
+          const formattedTcDate = format(tcDate, 'yyyy-MM-dd');
+          return formattedTcDate === selectedDate;
+        } catch (error) {
+          console.error('Error parsing date:', tc.clockIn, error);
+          return false;
+        }
+      });
+
+      if (timecard) {
+        const location = timecard.location?.toLowerCase();
+        if (location === 'home') {
+          home.push(employee);
+        } else {
+          present.push(employee);
+        }
+      } else if (!isWeekend(parseISO(selectedDate))) {
+        absent.push(employee);
+      }
+    });
+
+    return { present, absent, home };
   };
 
   if (isLoading) {
@@ -363,10 +561,25 @@ export const ManagerDashboard = () => {
             width: '100%', 
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', 
             borderRadius: 3,
-            overflow: 'hidden'
+            overflow: 'auto',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': {
+              height: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            },
           }}
         >
-        <Table>
+        <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow sx={{ 
               background: 'linear-gradient(135deg, #455a64 0%, #37474f 100%)'
@@ -399,7 +612,21 @@ export const ManagerDashboard = () => {
                 }
               }}>
                 <TableCell sx={{ py: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 2,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        '& .MuiTypography-root': {
+                          color: '#1976d2',
+                          textDecoration: 'underline',
+                        }
+                      }
+                    }}
+                    onClick={() => handleViewDetails(employee.id)}
+                  >
                     <Avatar sx={{ 
                       bgcolor: index % 2 === 0 ? '#1976d2' : '#455a64',
                       width: 36, 
@@ -409,7 +636,7 @@ export const ManagerDashboard = () => {
                     }}>
                       {employee.firstName[0]}{employee.lastName[0]}
                     </Avatar>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500, transition: 'all 0.2s ease' }}>
                       {employee.firstName} {employee.lastName}
                     </Typography>
                   </Box>
@@ -620,11 +847,27 @@ export const ManagerDashboard = () => {
         fullWidth
       >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BusinessIcon />
-            <Typography variant="h6">
-              {selectedPod ? `${selectedPod} POD Employees` : 'POD Employees'}
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BusinessIcon />
+              <Typography variant="h6">
+                {selectedPod ? `${selectedPod} POD Employees` : 'POD Employees'}
+              </Typography>
+            </Box>
+            <Tooltip title="View Timecard Calendar">
+              <IconButton
+                onClick={handleOpenTimecardView}
+                sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5a67d8 0%, #6b3fa0 100%)',
+                  },
+                }}
+              >
+                <CalendarIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </DialogTitle>
         <DialogContent>
@@ -679,7 +922,10 @@ export const ManagerDashboard = () => {
                         <Button
                           variant="contained"
                           size="small"
-                          onClick={() => handleViewDetails(employee.id)}
+                          onClick={() => {
+                            handleClosePodDialog();
+                            navigate(`/manager/employee-status/${employee.id}`);
+                          }}
                           sx={{
                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                             textTransform: 'none',
@@ -701,6 +947,372 @@ export const ManagerDashboard = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={handleClosePodDialog} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Timecard Calendar Dialog */}
+      <Dialog
+        open={timecardDialogOpen}
+        onClose={handleCloseTimecardView}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            minHeight: '600px',
+          },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CalendarIcon sx={{ color: '#1976d2' }} />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {selectedPod} POD - Timecard Calendar
+              </Typography>
+            </Box>
+            <IconButton onClick={handleCloseTimecardView}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {isLoadingTimecards ? (
+            <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DotIcon sx={{ fontSize: 16, color: '#4caf50' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Office</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DotIcon sx={{ fontSize: 16, color: '#fbc02d' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Home</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DotIcon sx={{ fontSize: 16, color: '#f44336' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Absent</Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{
+                '& .fc': {
+                  border: 'none',
+                },
+                '& .fc-daygrid-day': {
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease',
+                  '&:hover': {
+                    background: 'rgba(25, 118, 210, 0.05)',
+                  },
+                },
+                '& .fc-daygrid-day-events': {
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '2px',
+                  minHeight: '20px',
+                  marginTop: '4px',
+                },
+                '& .fc-event.dot-indicator': {
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  margin: 0,
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  overflow: 'visible',
+                },
+                '& .fc-event-title': {
+                  fontSize: '12px',
+                  lineHeight: 1,
+                },
+                '& .fc-daygrid-event-harness': {
+                  marginTop: '0 !important',
+                },
+                '& .fc-daygrid-day-frame': {
+                  minHeight: '60px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                },
+                '& .fc-daygrid-day-top': {
+                  justifyContent: 'center',
+                },
+                '& .fc-toolbar-title': {
+                  fontSize: '1.375rem',
+                  fontWeight: 700,
+                  color: '#455a64',
+                },
+                '& .fc-button': {
+                  background: '#1976d2',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '0.875rem',
+                  textTransform: 'capitalize',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 4px rgba(25, 118, 210, 0.2)',
+                  '&:hover': {
+                    background: '#1565c0',
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 8px rgba(25, 118, 210, 0.3)',
+                  },
+                },
+              }}>
+                <FullCalendar
+                  plugins={[dayGridPlugin, interactionPlugin]}
+                  initialView="dayGridMonth"
+                  events={generateCalendarEvents()}
+                  dateClick={handleDateClick}
+                  height="auto"
+                  headerToolbar={{
+                    left: 'prev,next',
+                    center: 'title',
+                    right: '',
+                  }}
+                />
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseTimecardView} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Date Details Dialog */}
+      <Dialog
+        open={dateDetailsDialogOpen}
+        onClose={handleCloseDateDetails}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Attendance Details - {selectedDate && format(parseISO(selectedDate), 'MMM dd, yyyy')}
+            </Typography>
+            <IconButton onClick={handleCloseDateDetails} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {(() => {
+            const details = getDateDetails();
+            return (
+              <Box>
+                {details.present.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <DotIcon sx={{ fontSize: 16, color: '#4caf50' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                        Present in Office ({details.present.length})
+                      </Typography>
+                    </Box>
+                    <List dense>
+                      {details.present.map((emp) => (
+                        <ListItem key={emp.id} sx={{ px: 0 }}>
+                          <ListItemAvatar>
+                            <Avatar sx={{ bgcolor: '#4caf50', width: 32, height: 32 }}>
+                              {emp.firstName[0]}{emp.lastName[0]}
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={`${emp.firstName} ${emp.lastName}`}
+                            secondary={emp.position}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
+
+                {details.home.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <DotIcon sx={{ fontSize: 16, color: '#fbc02d' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#f9a825' }}>
+                        Work from Home ({details.home.length})
+                      </Typography>
+                    </Box>
+                    <List dense>
+                      {details.home.map((emp) => (
+                        <ListItem key={emp.id} sx={{ px: 0 }}>
+                          <ListItemAvatar>
+                            <Avatar sx={{ bgcolor: '#f9a825', width: 32, height: 32 }}>
+                              {emp.firstName[0]}{emp.lastName[0]}
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={`${emp.firstName} ${emp.lastName}`}
+                            secondary={emp.position}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
+
+                {details.absent.length > 0 && (
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <DotIcon sx={{ fontSize: 16, color: '#f44336' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#f44336' }}>
+                        Absent ({details.absent.length})
+                      </Typography>
+                    </Box>
+                    <List dense>
+                      {details.absent.map((emp) => (
+                        <ListItem key={emp.id} sx={{ px: 0 }}>
+                          <ListItemAvatar>
+                            <Avatar sx={{ bgcolor: '#f44336', width: 32, height: 32 }}>
+                              {emp.firstName[0]}{emp.lastName[0]}
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={`${emp.firstName} ${emp.lastName}`}
+                            secondary={emp.position}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
+
+                {details.present.length === 0 && details.home.length === 0 && details.absent.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                    No attendance data available for this date
+                  </Typography>
+                )}
+              </Box>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDateDetails} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Employee Details Dialog */}
+      <Dialog
+        open={employeeDetailsDialogOpen}
+        onClose={handleCloseEmployeeDetails}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ 
+                bgcolor: '#1976d2',
+                width: 48, 
+                height: 48,
+                fontSize: '1.2rem',
+                fontWeight: 600
+              }}>
+                {selectedEmployee?.firstName[0]}{selectedEmployee?.lastName[0]}
+              </Avatar>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  {selectedEmployee?.firstName} {selectedEmployee?.lastName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedEmployee?.position}
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton onClick={handleCloseEmployeeDetails} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedEmployee && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Email
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5, color: '#1976d2' }}>
+                  {selectedEmployee.email}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  POD Name
+                </Typography>
+                <Chip 
+                  label={selectedEmployee.podName} 
+                  sx={{ 
+                    mt: 0.5,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
+              
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Position
+                </Typography>
+                <Typography variant="body1" sx={{ mt: 0.5 }}>
+                  {selectedEmployee.position}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Employee ID
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 0.5, fontFamily: 'monospace', color: 'text.secondary' }}>
+                  {selectedEmployee.id}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={() => {
+              handleCloseEmployeeDetails();
+              navigate(`/manager/employee-status/${selectedEmployee?.id}`);
+            }}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+              },
+            }}
+          >
+            View Full Details
+          </Button>
+          <Button onClick={handleCloseEmployeeDetails} variant="outlined">
             Close
           </Button>
         </DialogActions>

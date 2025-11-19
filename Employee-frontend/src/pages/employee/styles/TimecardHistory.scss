@@ -2,17 +2,26 @@
 
 .timecard-history {
   padding: 24px !important;
-  background: #ffffff !important;
+  background: #f5f7fa !important;
   min-height: calc(100vh - 88px) !important;
+  
+  @media (max-width: 768px) {
+    padding: 16px 12px !important;
+  }
 }
 
 .timecard-history__header {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  margin-bottom: 32px !important;
+  margin-bottom: 24px !important;
   flex-wrap: wrap !important;
   gap: 16px !important;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 16px !important;
+    gap: 12px !important;
+  }
 }
 
 .timecard-history__title {
@@ -23,6 +32,11 @@
   position: relative !important;
   padding-bottom: 12px !important;
   margin: 0 !important;
+  
+  @media (max-width: 768px) {
+    font-size: 1.5rem !important;
+    letter-spacing: 0.8px !important;
+  }
 
   &::after {
     content: '' !important;
@@ -33,6 +47,11 @@
     height: 4px !important;
     background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%) !important;
     border-radius: 2px !important;
+    
+    @media (max-width: 768px) {
+      width: 40px !important;
+      height: 3px !important;
+    }
   }
 }
 
@@ -55,11 +74,52 @@
   }
 }
 
+// Card Styles
+.timecard-history__filters-card,
+.timecard-history__summary-card,
+.timecard-history__calendar-card,
+.timecard-history__table-card {
+  margin-bottom: 24px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid rgba(25, 118, 210, 0.1) !important;
+
+  @media (max-width: 768px) {
+    margin-bottom: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+    transform: translateY(-2px) !important;
+    
+    @media (max-width: 768px) {
+      transform: none !important;
+    }
+  }
+
+  .MuiCardContent-root {
+    padding: 24px !important;
+    
+    &:last-child {
+      padding-bottom: 24px !important;
+    }
+    
+    @media (max-width: 768px) {
+      padding: 16px !important;
+      
+      &:last-child {
+        padding-bottom: 16px !important;
+      }
+    }
+  }
+}
+
 // Date Filters
 .timecard-history__filters {
   display: flex !important;
   gap: 16px !important;
-  margin-bottom: 24px !important;
   flex-wrap: wrap !important;
 
   .MuiTextField-root {
@@ -92,6 +152,132 @@
   }
 }
 
+// Summary Card
+.timecard-history__summary-card {
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.05) 0%, rgba(66, 165, 245, 0.05) 100%) !important;
+}
+
+.timecard-history__summary-title {
+  color: #455a64 !important;
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+  margin: 0 !important;
+
+  span {
+    color: #1976d2 !important;
+    font-weight: 700 !important;
+    font-size: 1.25rem !important;
+  }
+}
+
+// Calendar Card Styling
+.timecard-history__calendar-card {
+  .fc {
+    border: none !important;
+    
+    .fc-toolbar {
+      margin-bottom: 1.5rem !important;
+      padding: 0 8px !important;
+      
+      .fc-toolbar-title {
+        font-size: 1.375rem !important;
+        font-weight: 700 !important;
+        color: #455a64 !important;
+      }
+      
+      .fc-button {
+        background: #1976d2 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 6px 12px !important;
+        font-size: 0.875rem !important;
+        text-transform: capitalize !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 2px 4px rgba(25, 118, 210, 0.2) !important;
+        
+        &:hover {
+          background: #1565c0 !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3) !important;
+        }
+        
+        &:active {
+          transform: translateY(0) !important;
+        }
+        
+        &:disabled {
+          opacity: 0.5 !important;
+        }
+        
+        .fc-icon {
+          font-size: 1rem !important;
+        }
+      }
+      
+      .fc-button-group {
+        gap: 8px !important;
+      }
+    }
+    
+    .fc-scrollgrid {
+      border: 1px solid rgba(25, 118, 210, 0.1) !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+    }
+    
+    .fc-col-header-cell {
+      background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(66, 165, 245, 0.08) 100%) !important;
+      font-weight: 700 !important;
+      color: #455a64 !important;
+      text-transform: uppercase !important;
+      font-size: 0.75rem !important;
+      letter-spacing: 0.5px !important;
+      padding: 12px !important;
+      border-color: rgba(25, 118, 210, 0.1) !important;
+    }
+    
+    .fc-daygrid-day {
+      transition: background 0.2s ease !important;
+      
+      &:hover {
+        background: rgba(25, 118, 210, 0.02) !important;
+      }
+    }
+    
+    .fc-daygrid-day-number {
+      color: #455a64 !important;
+      font-weight: 600 !important;
+      padding: 8px !important;
+    }
+    
+    .fc-day-today {
+      background: rgba(25, 118, 210, 0.05) !important;
+      
+      .fc-daygrid-day-number {
+        color: #1976d2 !important;
+        font-weight: 700 !important;
+      }
+    }
+    
+    .fc-daygrid-day-frame {
+      min-height: 80px !important;
+    }
+    
+    .fc-event {
+      border: none !important;
+      border-radius: 4px !important;
+      margin: 2px !important;
+      opacity: 0.85 !important;
+      transition: opacity 0.2s ease !important;
+      
+      &:hover {
+        opacity: 1 !important;
+      }
+    }
+  }
+}
+
 // Error Alert
 .timecard-history__error {
   margin-bottom: 16px !important;
@@ -111,46 +297,35 @@
   padding: 48px !important;
 }
 
-// Summary Card
-.timecard-history__summary {
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(66, 165, 245, 0.08) 100%) !important;
-  backdrop-filter: blur(10px) !important;
-  border-radius: 16px !important;
-  padding: 20px 24px !important;
-  margin-bottom: 24px !important;
-  border: 1px solid rgba(25, 118, 210, 0.2) !important;
-  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08) !important;
-}
-
-.timecard-history__summary-title {
-  color: #455a64 !important;
-  font-weight: 600 !important;
-  font-size: 1.125rem !important;
-  margin: 0 !important;
-
-  span {
-    color: #1976d2 !important;
-    font-weight: 700 !important;
-    font-size: 1.25rem !important;
+// Table Card and Container
+.timecard-history__table-card {
+  .MuiCardContent-root {
+    padding: 24px !important;
+    
+    @media (max-width: 768px) {
+      padding: 16px 8px !important;
+    }
   }
 }
 
-// Table Container
 .timecard-history__table-container {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 8px 32px rgba(25, 118, 210, 0.08) !important;
-  border: 1px solid rgba(25, 118, 210, 0.1) !important;
-  overflow: hidden !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-
-  &:hover {
-    box-shadow: 0 12px 48px rgba(25, 118, 210, 0.15) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(25, 118, 210, 0.08) !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  
+  @media (max-width: 768px) {
+    border-radius: 8px !important;
   }
 
   .MuiTable-root {
     min-width: 650px !important;
+    
+    @media (max-width: 768px) {
+      min-width: 100% !important;
+    }
   }
 
   .MuiTableHead-root {
@@ -164,6 +339,12 @@
       letter-spacing: 0.5px !important;
       padding: 20px 16px !important;
       border-bottom: 2px solid rgba(25, 118, 210, 0.2) !important;
+      white-space: nowrap !important;
+      
+      @media (max-width: 768px) {
+        padding: 12px 8px !important;
+        font-size: 0.75rem !important;
+      }
     }
   }
 
@@ -188,6 +369,12 @@
         color: #455a64 !important;
         font-size: 0.875rem !important;
         border-bottom: 1px solid rgba(25, 118, 210, 0.08) !important;
+        white-space: nowrap !important;
+        
+        @media (max-width: 768px) {
+          padding: 12px 8px !important;
+          font-size: 0.8125rem !important;
+        }
       }
     }
 

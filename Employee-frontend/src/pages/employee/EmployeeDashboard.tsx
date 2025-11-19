@@ -9,9 +9,15 @@ import {
   Alert,
   Snackbar,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
+import LogoutIcon from '@mui/icons-material/Logout';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { format, isPast, parseISO } from 'date-fns';
 import { formatDateTime } from '../../utils/dateFormatter';
 import { timecardApi, taskApi } from '../../services/api';
@@ -28,6 +34,7 @@ export const EmployeeDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<'Home' | 'Office' | null>(null);
+  const [isClockOutDialogOpen, setClockOutDialogOpen] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -136,6 +143,19 @@ export const EmployeeDashboard = () => {
     }
   };
 
+  const handleClockOutClick = () => {
+    setClockOutDialogOpen(true);
+  };
+
+  const handleClockOutConfirm = async () => {
+    setClockOutDialogOpen(false);
+    await handleClockOut();
+  };
+
+  const handleClockOutCancel = () => {
+    setClockOutDialogOpen(false);
+  };
+
   if (isLoading) {
     return (
       <Box className="employee-dashboard__loading">
@@ -164,6 +184,85 @@ export const EmployeeDashboard = () => {
         onConfirm={handleLocationConfirm}
         isLoading={isActionLoading}
       />
+
+      <Dialog
+        open={isClockOutDialogOpen}
+        onClose={handleClockOutCancel}
+        aria-labelledby="clock-out-dialog-title"
+        aria-describedby="clock-out-dialog-description"
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            padding: 1,
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h6" fontWeight={600}>
+            Confirm Clock-Out
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Are you sure you want to clock out for the day?
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          <Box
+            sx={{
+              border: '2px solid',
+              borderColor: 'error.main',
+              borderRadius: 2,
+              p: 2,
+              mt: 1,
+              backgroundColor: 'error.50',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <LogoutIcon 
+                sx={{ 
+                  fontSize: 32, 
+                  color: 'error.main' 
+                }} 
+              />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body1" fontWeight={600}>
+                  Clock Out
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  This will end your work session
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, px: 1 }}>
+            <AccessTimeIcon sx={{ color: 'text.secondary', fontSize: '20px' }} />
+            <Typography variant="body2" color="text.secondary">
+              Current Time: <strong>{format(new Date(), 'hh:mm a')}</strong>
+            </Typography>
+          </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
+          <Button 
+            onClick={handleClockOutCancel} 
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleClockOutConfirm}
+            variant="contained"
+            color="error"
+            autoFocus
+            sx={{ minWidth: 100 }}
+          >
+            Clock Out
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Typography variant="h4" className="employee-dashboard__header">
         Dashboard
@@ -207,7 +306,7 @@ export const EmployeeDashboard = () => {
                       ? 'employee-dashboard__clock-button--disabled'
                       : 'employee-dashboard__clock-button--clock-in'
                   }`}
-                  onClick={handleClockInClick}
+                  onClick={isClockedIn ? handleClockOutClick : handleClockInClick}
                   disabled={Boolean(
                     isActionLoading || (
                       !isClockedIn && 

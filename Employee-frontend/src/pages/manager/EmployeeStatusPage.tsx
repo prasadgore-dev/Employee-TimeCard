@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -18,8 +18,13 @@ import {
   ToggleButtonGroup,
   Avatar,
   TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
 } from '@mui/material';
-import { ArrowBack, Today, History, FileDownload, DateRange } from '@mui/icons-material';
+import { ArrowBack, Today, History, FileDownload, DateRange, Close as CloseIcon } from '@mui/icons-material';
 import { managerApi } from '../../services/api';
 import * as XLSX from 'xlsx';
 import { formatDate, formatTime } from '../../utils/dateFormatter';
@@ -64,6 +69,7 @@ interface EmployeeDetails extends Employee {
 export const EmployeeStatusPage = () => {
   const { employeeId } = useParams();
   const navigate = useNavigate();
+  const isManualClose = useRef(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,6 +78,7 @@ export const EmployeeStatusPage = () => {
   const [timecardView, setTimecardView] = useState<'today' | 'all' | 'custom'>('today');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleSelectEmployee = useCallback(async (
     employeeId: string, 
@@ -106,6 +113,7 @@ export const EmployeeStatusPage = () => {
         tasks,
         timecards
       });
+      setDialogOpen(true);
     } catch (err) {
       console.error('Error fetching employee details:', err);
       setError('Failed to load employee details');
@@ -131,6 +139,19 @@ export const EmployeeStatusPage = () => {
     }
   };
 
+  const handleCloseDialog = () => {
+    isManualClose.current = true;
+    setDialogOpen(false);
+    setSelectedEmployee(null);
+    setTimecardView('today');
+    setStartDate('');
+    setEndDate('');
+    // If there's an employeeId in the URL, navigate back to the base employee status page
+    if (employeeId) {
+      navigate('/manager/employee-status');
+    }
+  };
+
   const getTaskCompletionStatus = (task: Task): string => {
     const dueDate = new Date(task.dueDate);
     const completedDate = task.completedAt ? new Date(task.completedAt) : null;
@@ -149,6 +170,66 @@ export const EmployeeStatusPage = () => {
         return 'In Progress';
       }
     }
+  };
+
+  const generateAllDatesWithAttendance = () => {
+    if (!selectedEmployee) return [];
+
+    // Calculate date range based on view type
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let rangeStartDate: Date;
+    let rangeEndDate: Date = new Date(today);
+
+    if (timecardView === 'today') {
+      rangeStartDate = new Date(today);
+    } else if (timecardView === 'custom' && startDate && endDate) {
+      rangeStartDate = new Date(startDate);
+      rangeEndDate = new Date(endDate);
+    } else {
+      // 'all' view - last 30 days
+      rangeStartDate = new Date(today);
+      rangeStartDate.setDate(today.getDate() - 29); // 30 days including today
+    }
+
+    // Generate all dates in range
+    const allDates: Array<{
+      date: string;
+      timecard: Timecard | null;
+      isPresent: boolean;
+      isWeekend: boolean;
+    }> = [];
+
+    const currentDate = new Date(rangeStartDate);
+    while (currentDate <= rangeEndDate) {
+      // Use local date to avoid timezone issues
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      const dayOfWeek = currentDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 1; // 1 = Sunday, 0 = Saturday
+      
+      // Find matching timecard for this date
+      const timecard = selectedEmployee.timecards.find(tc => {
+        const tcDateStr = typeof tc.date === 'string' ? tc.date.split('T')[0] : new Date(tc.date).toISOString().split('T')[0];
+        return tcDateStr === dateStr;
+      });
+
+      allDates.push({
+        date: dateStr,
+        timecard: timecard || null,
+        isPresent: !!timecard,
+        isWeekend
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Sort by date descending (most recent first)
+    return allDates.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   const handleExportToExcel = () => {
@@ -252,8 +333,12 @@ export const EmployeeStatusPage = () => {
 
   // Separate effect for initial employee selection from URL
   useEffect(() => {
-    if (employeeId && employees.length > 0 && !selectedEmployee) {
+    if (employeeId && employees.length > 0 && !selectedEmployee && !isManualClose.current) {
       handleSelectEmployee(employeeId);
+    }
+    // Reset manual close flag when employeeId changes (new navigation)
+    if (!employeeId) {
+      isManualClose.current = false;
     }
   }, [employeeId, employees, selectedEmployee, handleSelectEmployee]);
 
@@ -310,24 +395,30 @@ export const EmployeeStatusPage = () => {
         </Alert>
       )}
 
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { 
-          xs: '1fr', 
-          md: selectedEmployee ? (employeeId ? '1fr 2fr' : '2fr 3fr') : '1fr' 
-        }, 
-        gap: 3,
-        flexGrow: 1
-      }}>
-        <TableContainer 
+      <TableContainer 
           component={Paper} 
           sx={{ 
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', 
             borderRadius: 3,
-            overflow: 'hidden'
+            overflow: 'auto',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            '&::-webkit-scrollbar': {
+              height: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb:hover': {
+              background: '#555',
+            },
           }}
         >
-          <Table>
+          <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow sx={{ 
                 background: 'linear-gradient(135deg, #455a64 0%, #37474f 100%)'
@@ -355,8 +446,7 @@ export const EmployeeStatusPage = () => {
                     },
                     '&:nth-of-type(even)': {
                       backgroundColor: 'rgba(0, 0, 0, 0.02)'
-                    },
-                    backgroundColor: selectedEmployee?.id === employee.id ? 'rgba(25, 118, 210, 0.08)' : 'inherit'
+                    }
                   }}
                 >
                   <TableCell sx={{ py: 2 }}>
@@ -420,20 +510,23 @@ export const EmployeeStatusPage = () => {
           </Table>
         </TableContainer>
 
-        {selectedEmployee ? (
-          <Box 
-            component={Paper} 
-            sx={{ 
-              p: 3, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 3,
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', 
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)'
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      {/* Employee Details Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="lg"
+        fullWidth
+        disableEscapeKeyDown={false}
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            minHeight: '70vh',
+          },
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ 
                 bgcolor: '#1976d2',
                 width: 48, 
@@ -441,20 +534,29 @@ export const EmployeeStatusPage = () => {
                 fontSize: '1.2rem',
                 fontWeight: 600
               }}>
-                {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+                {selectedEmployee?.firstName[0]}{selectedEmployee?.lastName[0]}
               </Avatar>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 600, color: '#1976d2' }}>
-                  {selectedEmployee.firstName} {selectedEmployee.lastName}
+                  {selectedEmployee?.firstName} {selectedEmployee?.lastName}
                 </Typography>
                 <Typography variant="body1" color="textSecondary">
-                  {selectedEmployee.podName} • {selectedEmployee.position}
+                  {selectedEmployee?.podName} • {selectedEmployee?.position}
                 </Typography>
               </Box>
             </Box>
-
+            <IconButton onClick={handleCloseDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedEmployee && (
+            <>
             {isLoadingDetails ? (
-              <CircularProgress />
+              <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+                <CircularProgress />
+              </Box>
             ) : (
               <>
                 <Box>
@@ -499,20 +601,6 @@ export const EmployeeStatusPage = () => {
                           <Box sx={{ ml: 1 }}>Custom</Box>
                         </ToggleButton>
                       </ToggleButtonGroup>
-                      <Button
-                        variant="contained"
-                        startIcon={<FileDownload />}
-                        onClick={handleExportToExcel}
-                        sx={{
-                          backgroundColor: '#4caf50',
-                          '&:hover': {
-                            backgroundColor: '#45a049'
-                          }
-                        }}
-                        size="small"
-                      >
-                        Export Excel
-                      </Button>
                     </Box>
                   </Box>
                   
@@ -555,17 +643,48 @@ export const EmployeeStatusPage = () => {
                       </Button>
                     </Box>
                   )}
-                  {selectedEmployee.timecards.length > 0 ? (
-                    <TableContainer component={Paper} sx={{ 
-                      maxHeight: 400,
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
-                      borderRadius: 2,
-                      overflow: 'auto'
-                    }}>
-                      <Table size="small" stickyHeader>
-                        <TableHead>
-                          <TableRow>
-                            {(timecardView === 'all' || timecardView === 'custom') && (
+                  {(() => {
+                    const allDatesData = generateAllDatesWithAttendance();
+                    return allDatesData.length > 0 ? (
+                      <TableContainer component={Paper} sx={{ 
+                        maxHeight: 400,
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
+                        borderRadius: 2,
+                        overflow: 'auto',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        '&::-webkit-scrollbar': {
+                          height: '8px',
+                          width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          background: '#f1f1f1',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: '#888',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                          background: '#555',
+                        },
+                      }}>
+                        <Table size="small" stickyHeader sx={{ minWidth: 750 }}>
+                          <TableHead>
+                            <TableRow>
+                              {(timecardView === 'all' || timecardView === 'custom') && (
+                                <TableCell 
+                                  sx={{ 
+                                    color: 'white', 
+                                    fontWeight: 600,
+                                    background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+                                    position: 'sticky',
+                                    top: 0,
+                                    zIndex: 1
+                                  }}
+                                >
+                                  Date
+                                </TableCell>
+                              )}
                               <TableCell 
                                 sx={{ 
                                   color: 'white', 
@@ -576,100 +695,120 @@ export const EmployeeStatusPage = () => {
                                   zIndex: 1
                                 }}
                               >
-                                Date
+                                Status
                               </TableCell>
-                            )}
-                            <TableCell 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1
-                              }}
-                            >
-                              Clock In
-                            </TableCell>
-                            <TableCell 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1
-                              }}
-                            >
-                              Clock Out
-                            </TableCell>
-                            <TableCell 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1
-                              }}
-                            >
-                              Location
-                            </TableCell>
-                            <TableCell 
-                              sx={{ 
-                                color: 'white', 
-                                fontWeight: 600,
-                                background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1
-                              }}
-                            >
-                              Total Hours
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {selectedEmployee.timecards
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map((timecard) => (
-                            <TableRow key={timecard.id}>
-                              {(timecardView === 'all' || timecardView === 'custom') && (
-                                <TableCell>
-                                  <Typography variant="body2">
-                                    {formatDate(timecard.date)}
-                                  </Typography>
-                                </TableCell>
-                              )}
-                              <TableCell>{formatTime(timecard.clockIn)}</TableCell>
-                              <TableCell>
-                                {timecard.clockOut ? formatTime(timecard.clockOut) : '-'}
+                              <TableCell 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+                                  position: 'sticky',
+                                  top: 0,
+                                  zIndex: 1
+                                }}
+                              >
+                                Clock In
                               </TableCell>
-                              <TableCell>
-                                {timecard.location ? (
-                                  <Chip
-                                    label={timecard.location}
-                                    color={timecard.location === 'Home' ? 'primary' : 'secondary'}
-                                    size="small"
-                                    sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                                  />
-                                ) : (
-                                  '-'
-                                )}
+                              <TableCell 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+                                  position: 'sticky',
+                                  top: 0,
+                                  zIndex: 1
+                                }}
+                              >
+                                Clock Out
                               </TableCell>
-                              <TableCell>
-                                {timecard.totalHours != null ? Number(timecard.totalHours).toFixed(2) : '0.00'}h
+                              <TableCell 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+                                  position: 'sticky',
+                                  top: 0,
+                                  zIndex: 1
+                                }}
+                              >
+                                Location
+                              </TableCell>
+                              <TableCell 
+                                sx={{ 
+                                  color: 'white', 
+                                  fontWeight: 600,
+                                  background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)',
+                                  position: 'sticky',
+                                  top: 0,
+                                  zIndex: 1
+                                }}
+                              >
+                                Total Hours
                               </TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <Typography color="textSecondary">
-                      {timecardView === 'today' ? 'No timecard entries today' : 'No timecard entries found'}
-                    </Typography>
-                  )}
+                          </TableHead>
+                          <TableBody>
+                            {allDatesData.map((dateData, index) => (
+                              <TableRow 
+                                key={`${dateData.date}-${index}`}
+                                sx={{
+                                  backgroundColor: dateData.isWeekend ? 'rgba(0, 0, 0, 0.02)' : 'inherit',
+                                  '&:hover': { 
+                                    backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                                  }
+                                }}
+                              >
+                                {(timecardView === 'all' || timecardView === 'custom') && (
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: dateData.isWeekend ? 400 : 500 }}>
+                                      {formatDate(dateData.date)}
+                                    </Typography>
+                                  </TableCell>
+                                )}
+                                <TableCell>
+                                  <Chip
+                                    label={dateData.isWeekend ? 'Weekend' : (dateData.isPresent ? 'Present' : 'Absent')}
+                                    sx={{
+                                      backgroundColor: dateData.isWeekend ? '#9e9e9e' : (dateData.isPresent ? '#4caf50' : '#f44336'),
+                                      color: 'white',
+                                      fontWeight: 600,
+                                      fontSize: '0.7rem'
+                                    }}
+                                    size="small"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  {dateData.timecard ? formatTime(dateData.timecard.clockIn) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {dateData.timecard?.clockOut ? formatTime(dateData.timecard.clockOut) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {dateData.timecard?.location ? (
+                                    <Chip
+                                      label={dateData.timecard.location}
+                                      color={dateData.timecard.location === 'Home' ? 'primary' : 'secondary'}
+                                      size="small"
+                                      sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                                    />
+                                  ) : (
+                                    '-'
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {dateData.timecard?.totalHours != null ? Number(dateData.timecard.totalHours).toFixed(2) : '0.00'}h
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    ) : (
+                      <Typography color="textSecondary">
+                        {timecardView === 'today' ? 'No data available for today' : 'No data available for selected period'}
+                      </Typography>
+                    );
+                  })()}
                 </Box>
 
                 <Box>
@@ -678,9 +817,25 @@ export const EmployeeStatusPage = () => {
                     <TableContainer component={Paper} sx={{ 
                       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
                       borderRadius: 2,
-                      overflow: 'hidden'
+                      overflow: 'auto',
+                      overflowX: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      '&::-webkit-scrollbar': {
+                        height: '8px',
+                        width: '8px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: '#f1f1f1',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#888',
+                        borderRadius: '4px',
+                      },
+                      '&::-webkit-scrollbar-thumb:hover': {
+                        background: '#555',
+                      },
                     }}>
-                      <Table size="small">
+                      <Table size="small" sx={{ minWidth: 650 }}>
                         <TableHead>
                           <TableRow sx={{ 
                             background: 'linear-gradient(135deg, #546e7a 0%, #455a64 100%)'
@@ -756,27 +911,28 @@ export const EmployeeStatusPage = () => {
                 </Box>
               </>
             )}
-          </Box>
-        ) : !employeeId && (
-          <Box 
-            component={Paper} 
-            sx={{ 
-              p: 3, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              minHeight: '200px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', 
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 0, 0, 0.05)'
-            }}
-          >
-            <Typography variant="h6" color="textSecondary">
-              Select an employee from the list to view their details
-            </Typography>
-          </Box>
-        )}
-      </Box>
+            </>
+          )}
+        </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={handleCloseDialog} variant="outlined">
+              Close
+            </Button>
+            <Button 
+              onClick={handleExportToExcel}
+              variant="contained"
+              startIcon={<FileDownload />}
+              sx={{
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+                },
+              }}
+            >
+              Export Employee Report
+            </Button>
+          </DialogActions>
+        </Dialog>
     </Box>
   );
 };
