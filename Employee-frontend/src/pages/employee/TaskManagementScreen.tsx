@@ -22,15 +22,18 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { taskApi } from '../../services/api';
+// import { taskApi, azureTaskApi, type AzureTask } from '../../services/api';
 import type { Task } from '../../types/index';
 import { isPast, parseISO } from 'date-fns';
 import { formatDate } from '../../utils/dateFormatter';
+import { taskApi } from '../../services/api';
 
 export const TaskManagementScreen = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  // const [azureTasks, setAzureTasks] = useState<AzureTask[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // const [activeTab, setActiveTab] = useState<number>(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'todo' | 'completed'>('all');

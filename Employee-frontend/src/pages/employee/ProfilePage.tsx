@@ -33,13 +33,13 @@ export const ProfilePage = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [podNames, setPodNames] = useState<string[]>([]);
-  const [isLoadingPods, setIsLoadingPods] = useState(false);
+  // const [isLoadingPods, setIsLoadingPods] = useState(false);
 
   // Fetch available PODs from backend
   useEffect(() => {
     const fetchPods = async () => {
       try {
-        setIsLoadingPods(true);
+        // setIsLoadingPods(true);
         const pods = await authApi.getAvailablePods();
         setPodNames(pods);
       } catch (err) {
@@ -50,7 +50,7 @@ export const ProfilePage = () => {
           "CPR", "Horizontal", "Investments", "Loans1", "Loans2", "SME", "Wheels"
         ]);
       } finally {
-        setIsLoadingPods(false);
+        // setIsLoadingPods(false);
       }
     };
     

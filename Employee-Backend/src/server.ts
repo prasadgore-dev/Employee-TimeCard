@@ -9,6 +9,7 @@ import timecardRoutes from './routes/timecardRoutes';
 import leaveRoutes from './routes/leaveRoutes';
 import taskRoutes from './routes/taskRoutes';
 import managerRoutes from './routes/managerRoutes';
+import azureTaskRoutes from './routes/azureTaskRoutes';
 import { AppDataSource } from './config/data-source';
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use('/api/timecards', timecardRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/manager', managerRoutes);
+app.use('/api/azure-tasks', azureTaskRoutes);
 
 // Error handling
 app.use(errorHandler);

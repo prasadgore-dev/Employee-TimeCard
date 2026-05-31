@@ -37,7 +37,7 @@ export const LoginPage = () => {
   const [position, setPosition] = useState('');
   const [isSignup, setIsSignup] = useState(false);
   const [podNames, setPodNames] = useState<string[]>([]);
-  const [isLoadingPods, setIsLoadingPods] = useState(false);
+  // const [isLoadingPods, setIsLoadingPods] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -45,7 +45,7 @@ export const LoginPage = () => {
   useEffect(() => {
     const fetchPods = async () => {
       try {
-        setIsLoadingPods(true);
+        // setIsLoadingPods(true);
         const pods = await authApi.getAvailablePods();
         setPodNames(pods);
       } catch (err) {
@@ -56,7 +56,7 @@ export const LoginPage = () => {
           "CPR", "Horizontal", "Investments", "Loans1", "Loans2", "SME", "Wheels"
         ]);
       } finally {
-        setIsLoadingPods(false);
+        // setIsLoadingPods(false);
       }
     };
     

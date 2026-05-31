@@ -311,5 +311,39 @@ const adminApi = {
   },
 };
 
+// Azure DevOps Task API
+export interface AzureTask {
+  id: number;
+  title: string;
+  actualStartDate: string | null;
+  actualEndDate: string | null;
+  completedWork: number | null;
+  status: string;
+  workItemType: string;
+  assignedTo: string | null;
+}
+
+const azureTaskApi = {
+  getMyAzureTasks: async (): Promise<AzureTask[]> => {
+    const response = await api.get('/api/azure-tasks/my-tasks');
+    return response.data;
+  },
+
+  getEmployeeAzureTasks: async (employeeId: string): Promise<AzureTask[]> => {
+    const response = await api.get(`/api/azure-tasks/employee/${employeeId}`);
+    return response.data;
+  },
+
+  getAllAzureTasks: async (): Promise<AzureTask[]> => {
+    const response = await api.get('/api/azure-tasks/all');
+    return response.data;
+  },
+
+  testAzureConnection: async (): Promise<{ connected: boolean; message: string }> => {
+    const response = await api.get('/api/azure-tasks/test-connection');
+    return response.data;
+  }
+};
+
 // Re-export api instance and all service APIs
-export { api as default, userApi, timecardApi, leaveApi, taskApi, managerApi, authApi, adminApi };
+export { api as default, userApi, timecardApi, leaveApi, taskApi, managerApi, authApi, adminApi, azureTaskApi };
