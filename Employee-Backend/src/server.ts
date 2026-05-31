@@ -16,12 +16,18 @@ dotenv.config();
 
 const app: Express = express();
 
+// CORS configuration with allowed origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:5174', 'http://localhost:5173', 'https://employee-timecard-1.onrender.com'];
+
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5174', 'http://localhost:5173', 'https://employee-timecard-1.onrender.com/'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200
 }));
 app.use(express.json());
 
